@@ -177,6 +177,34 @@ func TestHeadTailNoOmit(t *testing.T) {
 	}
 }
 
+func TestHeadTailEdges(t *testing.T) {
+	in := lines("1", "2", "3", "4", "5", "6")
+
+	// head=0: leading omit message + tail only
+	res, _ := headTail(in, map[string]any{"head": 0, "tail": 2})
+	if len(res.Lines) != 3 || res.Lines[1] != "5" || res.Lines[2] != "6" {
+		t.Errorf("head=0: %v, want [<omit> 5 6]", res.Lines)
+	}
+
+	// negative clamps to 0 (head=-5 behaves as head=0)
+	res, _ = headTail(in, map[string]any{"head": -5, "tail": 1})
+	if res.Lines[len(res.Lines)-1] != "6" {
+		t.Errorf("negative head: %v", res.Lines)
+	}
+
+	// custom omit_msg with %d gets the omitted count
+	res, _ = headTail(in, map[string]any{"head": 1, "tail": 1, "omit_msg": "cut %d"})
+	if res.Lines[1] != "cut 4" {
+		t.Errorf("custom omit_msg = %q, want 'cut 4'", res.Lines[1])
+	}
+
+	// pathological huge head/tail must not panic (overflow guard) — returns input
+	res, _ = headTail(in, map[string]any{"head": 1 << 62, "tail": 1 << 62})
+	if len(res.Lines) != 6 {
+		t.Errorf("huge head/tail: got %d lines, want 6 unchanged", len(res.Lines))
+	}
+}
+
 func TestTail(t *testing.T) {
 	input := lines("1", "2", "3", "4", "5")
 	res, err := tail(input, map[string]any{"n": 2})

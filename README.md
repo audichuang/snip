@@ -355,6 +355,7 @@ Run `snip discover` to see which of your commands already have filters.
 | `truncate_lines` | Truncate lines to max length |
 | `strip_ansi` | Remove ANSI escape codes |
 | `head` / `tail` | Keep first/last N lines |
+| `head_tail` | Keep first N + last K lines (preserves trailing verdict) |
 | `group_by` | Group lines by regex capture |
 | `dedup` | Deduplicate with optional normalization |
 | `json_extract` | Extract fields from JSON |

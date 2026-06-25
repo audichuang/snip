@@ -84,8 +84,8 @@ Tests requiring SQLite must have `//go:build !lite` tag. Check `tracking.DriverA
 
 ## Filter DSL
 
-Filters are declarative YAML files with 20 built-in actions:
-`keep_lines`, `remove_lines`, `truncate_lines`, `truncate_bytes`, `strip_ansi`, `head`, `tail`,
+Filters are declarative YAML files with 21 built-in actions:
+`keep_lines`, `remove_lines`, `truncate_lines`, `truncate_bytes`, `strip_ansi`, `head`, `tail`, `head_tail`,
 `group_by`, `dedup`, `json_extract`, `json_schema`, `ndjson_stream`,
 `regex_extract`, `state_machine`, `aggregate`, `format_template`, `compact_path`,
 `replace`, `match_output`, `on_empty`

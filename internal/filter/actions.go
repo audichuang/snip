@@ -200,8 +200,14 @@ func headTail(input ActionResult, params map[string]any) (ActionResult, error) {
 		tailN = 0
 	}
 	n := len(input.Lines)
-	// Nothing to omit: fewer lines than the window, or no window at all.
-	if headN+tailN == 0 || n <= headN+tailN {
+	// Nothing to omit. Each dimension is checked independently so a huge head/tail
+	// can never produce an out-of-range slice, and we never compute headN+tailN
+	// (which could overflow for pathological values). headN >= n-tailN is the
+	// "no room left to omit" case; tailN < n here, so n-tailN can't underflow.
+	if headN == 0 && tailN == 0 {
+		return input, nil
+	}
+	if headN >= n || tailN >= n || headN >= n-tailN {
 		return input, nil
 	}
 	omitted := n - headN - tailN
