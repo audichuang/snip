@@ -40,13 +40,28 @@ func ExtractFirstSegment(cmd string) string {
 }
 
 // HasUnverifiableConstruct reports whether cmd contains shell syntax that snip's
-// single-segment inspection cannot safely attest: command substitution ($(...)
-// or backticks) or a carriage return (which a hook never treats as a boundary).
-// Such commands must never be auto-allowed, because the substituted content is
-// executed by the shell without ever being inspected against the filter set.
-// See issue #88.
+// single-segment inspection cannot safely attest: command substitution ($(...),
+// backticks, or the Bash 5.3 ${ ...; } / ${| ...; } funsub forms), process
+// substitution (<(...) or >(...)), or a carriage return (which a hook never
+// treats as a boundary). Such commands must never be auto-allowed, because the
+// substituted content is executed by the shell without ever being inspected
+// against the filter set. See issue #88.
+//
+// The ${ funsub forms are matched by their mandatory whitespace/pipe after "${"
+// ("${ ", "${\t", "${\n", "${|"), which never appears in ordinary parameter
+// expansion (${VAR}, ${VAR:-x}, ${#a[@]}), so they do not cause false positives.
+//
+// Known limitation: a $( split by a backslash-newline inside double quotes
+// (e.g. "$\<newline>(cmd)") is not detected — the shell removes the line
+// continuation before executing. Tracked as a follow-up.
 func HasUnverifiableConstruct(cmd string) bool {
 	return strings.Contains(cmd, "$(") ||
+		strings.Contains(cmd, "${ ") ||
+		strings.Contains(cmd, "${\t") ||
+		strings.Contains(cmd, "${\n") ||
+		strings.Contains(cmd, "${|") ||
+		strings.Contains(cmd, "<(") ||
+		strings.Contains(cmd, ">(") ||
 		strings.IndexByte(cmd, '`') >= 0 ||
 		strings.IndexByte(cmd, '\r') >= 0
 }

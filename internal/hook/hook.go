@@ -54,10 +54,11 @@ func Run(r io.Reader, w io.Writer, commands []string, snipBin string) error {
 		return nil
 	}
 
-	// Commands containing a command substitution ($(...) or backticks) or a
-	// carriage return cannot be safely segmented or attested: the substituted
-	// content executes without ever being inspected. Pass through unchanged so
-	// Claude Code's confirmation prompt still fires (#88).
+	// Commands containing command substitution ($(...), backticks, or Bash 5.3
+	// ${ ...; } funsubs), process substitution (<(...)/>(...)), or a carriage
+	// return cannot be safely segmented or attested: the substituted content
+	// executes without ever being inspected. Pass through unchanged so Claude
+	// Code's confirmation prompt still fires (#88).
 	if HasUnverifiableConstruct(ti.Command) {
 		return nil
 	}

