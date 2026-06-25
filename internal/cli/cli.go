@@ -23,6 +23,7 @@ import (
 	"github.com/edouard-claude/snip/internal/tee"
 	"github.com/edouard-claude/snip/internal/tracking"
 	"github.com/edouard-claude/snip/internal/trust"
+	"github.com/edouard-claude/snip/internal/utils"
 	"github.com/edouard-claude/snip/internal/verify"
 )
 
@@ -227,11 +228,22 @@ func Run(args []string) int {
 // without executing any command — a dry-run for tuning a filter against real
 // output. Returns 0 on success, 1 on error.
 func runFilter(args []string) int {
-	if len(args) == 0 {
-		display.PrintError("filter requires a filter name: <cmd> 2>&1 | snip filter <name>")
+	var name string
+	stats := false
+	for _, a := range args {
+		switch {
+		case a == "--stats":
+			stats = true
+		case strings.HasPrefix(a, "-"):
+			// ignore unknown flags
+		case name == "":
+			name = a
+		}
+	}
+	if name == "" {
+		display.PrintError("filter requires a filter name: <cmd> 2>&1 | snip filter <name> [--stats]")
 		return 1
 	}
-	name := args[0]
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -255,6 +267,20 @@ func runFilter(args []string) int {
 		return 1
 	}
 	fmt.Print(out)
+
+	// --stats prints the before/after token counts to stderr, so the dry-run's
+	// stdout stays the pure filtered output (still pipeable) while you see at a
+	// glance whether a filter tweak actually compressed more.
+	if stats {
+		in := utils.EstimateTokens(string(input))
+		o := utils.EstimateTokens(out)
+		if in > 0 {
+			saved := float64(in-o) / float64(in) * 100
+			fmt.Fprintf(os.Stderr, "tokens: %d → %d (saved %.1f%%)\n", in, o, saved)
+		} else {
+			fmt.Fprintf(os.Stderr, "tokens: %d → %d\n", in, o)
+		}
+	}
 	return 0
 }
 

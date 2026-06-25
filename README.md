@@ -277,6 +277,7 @@ snip discover --all         # scan all projects
 snip verify                 # run all inline filter tests
 snip verify mvnd            # verify only named filter(s) — fast iteration
 some-cmd 2>&1 | snip filter mvnd   # dry-run a filter over stdin (no command run)
+some-cmd 2>&1 | snip filter mvnd --stats   # dry-run + before/after token counts
 snip -v <command>           # verbose mode (show filter details)
 snip proxy <command>        # force passthrough (no filtering)
 snip config                 # show config
