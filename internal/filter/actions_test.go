@@ -144,6 +144,39 @@ func TestHeadNoOverflow(t *testing.T) {
 	}
 }
 
+func TestHeadTail(t *testing.T) {
+	input := lines("1", "2", "3", "4", "5", "6", "7", "8", "9", "10")
+	res, err := headTail(input, map[string]any{"head": 2, "tail": 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 2 head + 1 omit msg + 2 tail
+	if len(res.Lines) != 5 {
+		t.Fatalf("got %d lines, want 5: %v", len(res.Lines), res.Lines)
+	}
+	if res.Lines[0] != "1" || res.Lines[1] != "2" {
+		t.Errorf("head = %v, want [1 2]", res.Lines[:2])
+	}
+	if res.Lines[3] != "9" || res.Lines[4] != "10" {
+		t.Errorf("tail = %v, want [9 10]", res.Lines[3:])
+	}
+	if !strings.Contains(res.Lines[2], "6") { // 6 lines omitted
+		t.Errorf("omit msg = %q, want count 6", res.Lines[2])
+	}
+}
+
+func TestHeadTailNoOmit(t *testing.T) {
+	input := lines("1", "2", "3")
+	res, err := headTail(input, map[string]any{"head": 2, "tail": 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// head+tail (4) >= len (3): return unchanged, no omit message inserted
+	if len(res.Lines) != 3 {
+		t.Errorf("got %d lines, want 3 (unchanged): %v", len(res.Lines), res.Lines)
+	}
+}
+
 func TestTail(t *testing.T) {
 	input := lines("1", "2", "3", "4", "5")
 	res, err := tail(input, map[string]any{"n": 2})

@@ -21,6 +21,7 @@ var actions = map[string]ActionFunc{
 	"strip_ansi":      stripANSI,
 	"head":            head,
 	"tail":            tail,
+	"head_tail":       headTail,
 	"group_by":        groupBy,
 	"dedup":           dedup,
 	"json_extract":    jsonExtract,
@@ -182,6 +183,39 @@ func head(input ActionResult, params map[string]any) (ActionResult, error) {
 		msg = fmt.Sprintf("+%d more lines", remaining)
 	}
 	out = append(out, msg)
+	return ActionResult{Lines: out, Metadata: input.Metadata}, nil
+}
+
+// headTail keeps the first `head` and last `tail` lines, replacing the middle
+// with an omit message. Unlike `head` (which cuts from the top), this preserves
+// trailing lines — e.g. a build's leading context AND its final BUILD verdict,
+// which would otherwise be truncated away when the matched signal exceeds `head`.
+func headTail(input ActionResult, params map[string]any) (ActionResult, error) {
+	headN := getInt(params, "head", 10)
+	tailN := getInt(params, "tail", 10)
+	if headN < 0 {
+		headN = 0
+	}
+	if tailN < 0 {
+		tailN = 0
+	}
+	n := len(input.Lines)
+	// Nothing to omit: fewer lines than the window, or no window at all.
+	if headN+tailN == 0 || n <= headN+tailN {
+		return input, nil
+	}
+	omitted := n - headN - tailN
+	msg := getStr(params, "omit_msg")
+	switch {
+	case msg == "":
+		msg = fmt.Sprintf("... (%d lines omitted)", omitted)
+	case strings.Contains(msg, "%d"):
+		msg = fmt.Sprintf(msg, omitted)
+	}
+	out := make([]string, 0, headN+tailN+1)
+	out = append(out, input.Lines[:headN]...)
+	out = append(out, msg)
+	out = append(out, input.Lines[n-tailN:]...)
 	return ActionResult{Lines: out, Metadata: input.Metadata}, nil
 }
 
