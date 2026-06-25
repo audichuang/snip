@@ -34,9 +34,15 @@ type Summary struct {
 // Returns 0 on success, 1 on failure.
 func Run(args []string) int {
 	requireAll := false
+	var names []string
 	for _, arg := range args {
-		if arg == "--require-all" {
+		switch {
+		case arg == "--require-all":
 			requireAll = true
+		case strings.HasPrefix(arg, "-"):
+			// ignore unknown flags
+		default:
+			names = append(names, arg)
 		}
 	}
 
@@ -49,6 +55,16 @@ func Run(args []string) int {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "snip verify: load filters: %v\n", err)
 		return 1
+	}
+
+	// `snip verify <name>...` verifies only the named filters — faster feedback
+	// when iterating on one filter than running all 130+.
+	if len(names) > 0 {
+		filters = selectFilters(filters, names)
+		if len(filters) == 0 {
+			fmt.Fprintf(os.Stderr, "snip verify: no filter named %s\n", strings.Join(names, ", "))
+			return 1
+		}
 	}
 
 	summary := RunTests(filters)
@@ -64,6 +80,21 @@ func Run(args []string) int {
 	}
 
 	return 0
+}
+
+// selectFilters keeps only the filters whose Name is in names.
+func selectFilters(filters []filter.Filter, names []string) []filter.Filter {
+	want := make(map[string]bool, len(names))
+	for _, n := range names {
+		want[n] = true
+	}
+	var out []filter.Filter
+	for _, f := range filters {
+		if want[f.Name] {
+			out = append(out, f)
+		}
+	}
+	return out
 }
 
 // RunTests executes all inline tests across the given filters.
@@ -169,10 +200,10 @@ func PrintReport(s Summary) {
 
 	// Group results by filter
 	type filterGroup struct {
-		name    string
-		total   int
-		passed  int
-		failed  []TestResult
+		name   string
+		total  int
+		passed int
+		failed []TestResult
 	}
 
 	groups := make(map[string]*filterGroup)

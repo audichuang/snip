@@ -6,6 +6,23 @@ import (
 	"github.com/edouard-claude/snip/internal/filter"
 )
 
+func TestSelectFilters(t *testing.T) {
+	filters := []filter.Filter{
+		{Name: "git-diff"}, {Name: "mvnd"}, {Name: "tsc"},
+	}
+	got := selectFilters(filters, []string{"mvnd", "tsc", "nonexistent"})
+	if len(got) != 2 {
+		t.Fatalf("selectFilters kept %d, want 2", len(got))
+	}
+	names := map[string]bool{got[0].Name: true, got[1].Name: true}
+	if !names["mvnd"] || !names["tsc"] {
+		t.Errorf("selectFilters = %v, want mvnd+tsc", names)
+	}
+	if len(selectFilters(filters, []string{"none"})) != 0 {
+		t.Error("selectFilters with no match should be empty")
+	}
+}
+
 func TestRunTestsPassingFilter(t *testing.T) {
 	filters := []filter.Filter{
 		{
