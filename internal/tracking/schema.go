@@ -65,6 +65,23 @@ ORDER BY saved_tokens DESC
 LIMIT ?;
 `
 
+// worstByCommandSQL is byCommandSQL ordered by lowest savings first, so `gain
+// --worst` surfaces the commands worth optimizing (which --top never shows).
+// Ties broken by run count so high-volume low-savers float to the top.
+const worstByCommandSQL = `
+SELECT
+	original_cmd,
+	COUNT(*) as count,
+	SUM(input_tokens) as input_tokens,
+	SUM(output_tokens) as output_tokens,
+	SUM(saved_tokens) as saved_tokens,
+	COALESCE(SUM(saved_tokens) * 100.0 / NULLIF(SUM(input_tokens), 0), 0) as avg_savings
+FROM commands
+GROUP BY original_cmd
+ORDER BY avg_savings ASC, count DESC
+LIMIT ?;
+`
+
 const weeklySQL = `
 SELECT
 	strftime('%Y-W%W', timestamp) as period,

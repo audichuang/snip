@@ -176,6 +176,32 @@ func (t *Tracker) GetByCommand(limit int) ([]CommandStats, error) {
 	return stats, rows.Err()
 }
 
+// GetWorstByCommand returns the N commands with the lowest average savings
+// (optimization targets), ties broken by run count descending.
+func (t *Tracker) GetWorstByCommand(limit int) ([]CommandStats, error) {
+	if err := t.ensureOpen(); err != nil {
+		return nil, fmt.Errorf("worst by command: %w", err)
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	rows, err := t.db.Query(worstByCommandSQL, limit)
+	if err != nil {
+		return nil, fmt.Errorf("worst by command: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var stats []CommandStats
+	for rows.Next() {
+		var s CommandStats
+		if err := rows.Scan(&s.Command, &s.Count, &s.InputTokens, &s.OutputTokens, &s.SavedTokens, &s.AvgSavings); err != nil {
+			return nil, fmt.Errorf("worst by command scan: %w", err)
+		}
+		stats = append(stats, s)
+	}
+	return stats, rows.Err()
+}
+
 // GetWeekly returns weekly stats for the last N weeks.
 func (t *Tracker) GetWeekly(weeks int) ([]PeriodStats, error) {
 	if err := t.ensureOpen(); err != nil {

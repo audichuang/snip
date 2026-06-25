@@ -25,10 +25,12 @@ func RunGain(tracker *tracking.Tracker, args []string) error {
 		showJSON    bool
 		showCSV     bool
 		showTop     bool
+		showWorst   bool
 		showQuota   bool
 		noTruncate  bool
 		historyN    int
 		topN        int
+		worstN      int
 		days        = 7
 	)
 
@@ -54,6 +56,16 @@ func RunGain(tracker *tracking.Tracker, args []string) error {
 			}
 			if topN <= 0 {
 				topN = 10
+			}
+		case "--worst", "--underperformers":
+			showWorst = true
+			if i+1 < len(args) {
+				if _, err := fmt.Sscanf(args[i+1], "%d", &worstN); err == nil {
+					i++
+				}
+			}
+			if worstN <= 0 {
+				worstN = 10
 			}
 		case "--history":
 			if i+1 < len(args) {
@@ -91,6 +103,11 @@ func RunGain(tracker *tracking.Tracker, args []string) error {
 			printQuotaProjection(tracker)
 		}
 		return err
+	}
+
+	if showWorst {
+		printSummary(summary)
+		return showWorstByCommand(tracker, worstN, noTruncate)
 	}
 
 	if showWeekly {
@@ -198,6 +215,21 @@ func showByCommand(tracker *tracking.Tracker, limit int, noTruncate bool) error 
 	if err != nil {
 		return err
 	}
+	return renderCommandTable(stats, "Top commands by tokens saved", noTruncate)
+}
+
+// showWorstByCommand lists the lowest-savings commands — the optimization
+// targets that `--top` never surfaces (it only shows the best performers).
+func showWorstByCommand(tracker *tracking.Tracker, limit int, noTruncate bool) error {
+	stats, err := tracker.GetWorstByCommand(limit)
+	if err != nil {
+		return err
+	}
+	return renderCommandTable(stats, "Lowest-savings commands (optimization targets)", noTruncate)
+}
+
+// renderCommandTable prints a per-command savings table under the given title.
+func renderCommandTable(stats []tracking.CommandStats, title string, noTruncate bool) error {
 	if len(stats) == 0 {
 		return nil
 	}
@@ -213,10 +245,10 @@ func showByCommand(tracker *tracking.Tracker, limit int, noTruncate bool) error 
 	}
 
 	if tty {
-		fmt.Println(DimStyle.Render("  Top commands by tokens saved"))
+		fmt.Println(DimStyle.Render("  " + title))
 		fmt.Println()
 	} else {
-		fmt.Println("  Top commands by tokens saved")
+		fmt.Println("  " + title)
 		fmt.Println()
 	}
 

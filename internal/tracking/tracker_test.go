@@ -133,6 +133,29 @@ func TestGetByCommand(t *testing.T) {
 	}
 }
 
+func TestGetWorstByCommand(t *testing.T) {
+	tracker := newTestTracker(t)
+
+	_ = tracker.Track("go test", "snip go test", 2000, 300, 100) // 85% savings
+	_ = tracker.Track("git log", "snip git log", 1000, 200, 50)  // 80%
+	_ = tracker.Track("ls -la", "snip ls -la", 50, 30, 5)        // 40% — worst
+
+	stats, err := tracker.GetWorstByCommand(10)
+	if err != nil {
+		t.Fatalf("worst by command: %v", err)
+	}
+	if len(stats) != 3 {
+		t.Fatalf("got %d commands, want 3", len(stats))
+	}
+	// Lowest avg savings first: ls -la (40%) < git log (80%) < go test (85%)
+	if stats[0].Command != "ls -la" {
+		t.Errorf("first (worst) command = %q, want ls -la", stats[0].Command)
+	}
+	if stats[len(stats)-1].Command != "go test" {
+		t.Errorf("last (best) command = %q, want go test", stats[len(stats)-1].Command)
+	}
+}
+
 func TestGetByCommandLimit(t *testing.T) {
 	tracker := newTestTracker(t)
 
