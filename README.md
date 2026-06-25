@@ -266,6 +266,7 @@ snip gain --daily           # daily breakdown
 snip gain --weekly          # weekly breakdown
 snip gain --monthly         # monthly breakdown
 snip gain --top 10          # top N commands by tokens saved
+snip gain --worst 10        # N lowest-savings commands (optimization candidates)
 snip gain --history 20      # last 20 commands
 snip gain --no-truncate     # disable command truncation
 snip gain --json            # machine-readable output
@@ -273,6 +274,9 @@ snip gain --csv             # CSV export
 snip discover               # find missed savings in Claude Code history
 snip discover --since 30    # scan last 30 days
 snip discover --all         # scan all projects
+snip verify                 # run all inline filter tests
+snip verify mvnd            # verify only named filter(s) — fast iteration
+some-cmd 2>&1 | snip filter mvnd   # dry-run a filter over stdin (no command run)
 snip -v <command>           # verbose mode (show filter details)
 snip proxy <command>        # force passthrough (no filtering)
 snip config                 # show config

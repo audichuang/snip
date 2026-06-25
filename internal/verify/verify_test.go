@@ -10,16 +10,22 @@ func TestSelectFilters(t *testing.T) {
 	filters := []filter.Filter{
 		{Name: "git-diff"}, {Name: "mvnd"}, {Name: "tsc"},
 	}
-	got := selectFilters(filters, []string{"mvnd", "tsc", "nonexistent"})
-	if len(got) != 2 {
-		t.Fatalf("selectFilters kept %d, want 2", len(got))
+
+	matched, missing := selectFilters(filters, []string{"mvnd", "tsc"})
+	if len(matched) != 2 || len(missing) != 0 {
+		t.Fatalf("matched=%d missing=%v, want 2 matched + 0 missing", len(matched), missing)
 	}
-	names := map[string]bool{got[0].Name: true, got[1].Name: true}
-	if !names["mvnd"] || !names["tsc"] {
-		t.Errorf("selectFilters = %v, want mvnd+tsc", names)
+
+	// A typo'd name must be reported as missing, not silently dropped.
+	matched, missing = selectFilters(filters, []string{"mvnd", "typo"})
+	if len(matched) != 1 || len(missing) != 1 || missing[0] != "typo" {
+		t.Errorf("matched=%d missing=%v, want 1 matched + [typo] missing", len(matched), missing)
 	}
-	if len(selectFilters(filters, []string{"none"})) != 0 {
-		t.Error("selectFilters with no match should be empty")
+
+	// Duplicate requested names collapse.
+	matched, _ = selectFilters(filters, []string{"mvnd", "mvnd"})
+	if len(matched) != 1 {
+		t.Errorf("duplicate names: matched=%d, want 1", len(matched))
 	}
 }
 

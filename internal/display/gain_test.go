@@ -90,6 +90,28 @@ func TestRunGainTop(t *testing.T) {
 	}
 }
 
+func TestRunGainWorst(t *testing.T) {
+	tracker := newTestTracker(t)
+	seedTracker(t, tracker)
+
+	if err := RunGain(tracker, []string{"--worst", "5"}); err != nil {
+		t.Fatalf("--worst: %v", err)
+	}
+	// alias
+	if err := RunGain(tracker, []string{"--underperformers"}); err != nil {
+		t.Fatalf("--underperformers: %v", err)
+	}
+}
+
+func TestRunGainTopWorstMutuallyExclusive(t *testing.T) {
+	tracker := newTestTracker(t)
+	seedTracker(t, tracker)
+
+	if err := RunGain(tracker, []string{"--top", "--worst"}); err == nil {
+		t.Error("--top --worst should error (mutually exclusive)")
+	}
+}
+
 func TestRunGainTopDefault(t *testing.T) {
 	tracker := newTestTracker(t)
 	seedTracker(t, tracker)

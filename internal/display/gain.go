@@ -51,8 +51,9 @@ func RunGain(tracker *tracking.Tracker, args []string) error {
 		case "--top":
 			showTop = true
 			if i+1 < len(args) {
-				_, _ = fmt.Sscanf(args[i+1], "%d", &topN)
-				i++
+				if _, err := fmt.Sscanf(args[i+1], "%d", &topN); err == nil {
+					i++
+				}
 			}
 			if topN <= 0 {
 				topN = 10
@@ -69,8 +70,9 @@ func RunGain(tracker *tracking.Tracker, args []string) error {
 			}
 		case "--history":
 			if i+1 < len(args) {
-				_, _ = fmt.Sscanf(args[i+1], "%d", &historyN)
-				i++
+				if _, err := fmt.Sscanf(args[i+1], "%d", &historyN); err == nil {
+					i++
+				}
 			}
 			if historyN <= 0 {
 				historyN = 10
@@ -78,6 +80,10 @@ func RunGain(tracker *tracking.Tracker, args []string) error {
 		case "--no-truncate":
 			noTruncate = true
 		}
+	}
+
+	if showTop && showWorst {
+		return fmt.Errorf("--top and --worst are mutually exclusive")
 	}
 
 	summary, err := tracker.GetSummary()
@@ -225,7 +231,7 @@ func showWorstByCommand(tracker *tracking.Tracker, limit int, noTruncate bool) e
 	if err != nil {
 		return err
 	}
-	return renderCommandTable(stats, "Lowest-savings commands (optimization targets)", noTruncate)
+	return renderCommandTable(stats, "Lowest average savings (optimization candidates)", noTruncate)
 }
 
 // renderCommandTable prints a per-command savings table under the given title.

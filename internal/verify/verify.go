@@ -58,11 +58,14 @@ func Run(args []string) int {
 	}
 
 	// `snip verify <name>...` verifies only the named filters — faster feedback
-	// when iterating on one filter than running all 130+.
+	// when iterating on one filter than running all 130+. Any requested name that
+	// matches no filter is a hard error, so a typo fails loudly instead of being
+	// silently skipped (which would falsely look like the filter passed).
 	if len(names) > 0 {
-		filters = selectFilters(filters, names)
-		if len(filters) == 0 {
-			fmt.Fprintf(os.Stderr, "snip verify: no filter named %s\n", strings.Join(names, ", "))
+		var missing []string
+		filters, missing = selectFilters(filters, names)
+		if len(missing) > 0 {
+			fmt.Fprintf(os.Stderr, "snip verify: no filter named %s\n", strings.Join(missing, ", "))
 			return 1
 		}
 	}
@@ -82,19 +85,27 @@ func Run(args []string) int {
 	return 0
 }
 
-// selectFilters keeps only the filters whose Name is in names.
-func selectFilters(filters []filter.Filter, names []string) []filter.Filter {
-	want := make(map[string]bool, len(names))
-	for _, n := range names {
-		want[n] = true
-	}
-	var out []filter.Filter
+// selectFilters returns the filters whose Name is in names, plus the list of
+// requested names that matched no filter. Requested order is preserved and
+// duplicate names are collapsed.
+func selectFilters(filters []filter.Filter, names []string) (matched []filter.Filter, missing []string) {
+	byName := make(map[string]filter.Filter, len(filters))
 	for _, f := range filters {
-		if want[f.Name] {
-			out = append(out, f)
+		byName[f.Name] = f
+	}
+	seen := make(map[string]bool, len(names))
+	for _, n := range names {
+		if seen[n] {
+			continue
+		}
+		seen[n] = true
+		if f, ok := byName[n]; ok {
+			matched = append(matched, f)
+		} else {
+			missing = append(missing, n)
 		}
 	}
-	return out
+	return matched, missing
 }
 
 // RunTests executes all inline tests across the given filters.

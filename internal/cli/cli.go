@@ -482,7 +482,9 @@ Commands:
   cc-economics    Show financial impact of token savings by API tier
   discover        Scan sessions for missed filter opportunities
   learn           Detect CLI error-correction patterns in sessions
-  verify          Run inline filter tests (--require-all to enforce coverage)
+  verify          Run inline filter tests (verify <name>... for specific ones)
+  filter          Apply a named filter's pipeline to stdin, no command run
+                  (raw filter pipeline; ignores config enable/override/limits)
   config          Show current configuration
   trust           Trust project-local filter file(s) by SHA-256 hash
   untrust         Remove filter file(s) from the trust store
