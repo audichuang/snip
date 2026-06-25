@@ -7,7 +7,32 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/edouard-claude/snip/internal/filter"
 )
+
+func TestApplyNamedFilter(t *testing.T) {
+	filters := []filter.Filter{
+		{
+			Name: "demo",
+			Pipeline: filter.Pipeline{
+				{ActionName: "remove_lines", Params: map[string]any{"pattern": `^DEBUG`}},
+			},
+		},
+	}
+
+	got, err := applyNamedFilter(filters, "demo", "DEBUG noise\nkeep me\n")
+	if err != nil {
+		t.Fatalf("applyNamedFilter: %v", err)
+	}
+	if strings.Contains(got, "DEBUG") || !strings.Contains(got, "keep me") {
+		t.Errorf("applyNamedFilter output = %q, want DEBUG removed and 'keep me' kept", got)
+	}
+
+	if _, err := applyNamedFilter(filters, "missing", "x"); err == nil {
+		t.Error("applyNamedFilter with unknown name should error")
+	}
+}
 
 // captureStderr captures stderr during fn execution and returns the captured output.
 func captureStderr(fn func()) string {
@@ -95,7 +120,7 @@ func TestUnproxyableCommands(t *testing.T) {
 		{"else", true},
 		{"done", true},
 		{"do", true},
-		{"perform", false},  // contains "for" but isn't the keyword
+		{"perform", false}, // contains "for" but isn't the keyword
 		{"git", false},
 		{"go", false},
 		{"docker", false},

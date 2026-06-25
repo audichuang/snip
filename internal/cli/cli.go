@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"sort"
 	"strings"
@@ -210,10 +211,61 @@ func Run(args []string) int {
 		}
 		p := &engine.Pipeline{}
 		return p.Passthrough(cmdArgs[0], cmdArgs[1:])
+
+	case "filter":
+		// Apply a named filter's pipeline to stdin without running any command.
+		// Lets you tune a filter against real captured output with no restart:
+		//   some-cmd 2>&1 | snip filter <name>
+		return runFilter(cmdArgs)
 	}
 
 	// Filter pipeline
 	return runPipeline(command, cmdArgs, flags)
+}
+
+// runFilter applies the named filter's pipeline to stdin and prints the result,
+// without executing any command — a dry-run for tuning a filter against real
+// output. Returns 0 on success, 1 on error.
+func runFilter(args []string) int {
+	if len(args) == 0 {
+		display.PrintError("filter requires a filter name: <cmd> 2>&1 | snip filter <name>")
+		return 1
+	}
+	name := args[0]
+
+	cfg, err := config.Load()
+	if err != nil {
+		cfg = config.DefaultConfig()
+	}
+	filters, err := filter.LoadAll(cfg.Filters.Dirs())
+	if err != nil {
+		display.PrintError(fmt.Sprintf("load filters: %v", err))
+		return 1
+	}
+
+	input, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		display.PrintError(fmt.Sprintf("read stdin: %v", err))
+		return 1
+	}
+
+	out, err := applyNamedFilter(filters, name, string(input))
+	if err != nil {
+		display.PrintError(err.Error())
+		return 1
+	}
+	fmt.Print(out)
+	return 0
+}
+
+// applyNamedFilter finds the filter named name and runs its pipeline over input.
+func applyNamedFilter(filters []filter.Filter, name, input string) (string, error) {
+	for i := range filters {
+		if filters[i].Name == name {
+			return engine.ApplyPipeline(&filters[i], input)
+		}
+	}
+	return "", fmt.Errorf("no filter named %q (run `snip verify` to list, or check ~/.config/snip/filters)", name)
 }
 
 func parseSeparatorArgs(args []string, cmdName string) (string, []string, string) {
